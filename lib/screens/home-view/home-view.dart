@@ -1,10 +1,15 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shop_everything/main_common.dart';
+import 'package:shop_everything/model/flvaor_config.model.dart';
 import 'package:shop_everything/model/product.model.dart';
+import 'package:shop_everything/repository/repository.dart';
 import 'package:shop_everything/screens/home-view/home-view-model.dart';
 import 'package:shop_everything/widgets/bottom-navigation-bar.dart';
 import 'package:shop_everything/widgets/custom-text-button.dart';
@@ -26,14 +31,19 @@ class HomeView extends ConsumerWidget {
             .call(focusNode: ref.read(serachFeildFocusProvider));
       },
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color.fromARGB(255, 247, 232, 236),
-              Color.fromRGBO(255, 251, 252, 1),
-            ],
+            colors: ref.watch(flavorConfigProvider).appTitle == "Trendy"
+                ? [
+                    const Color.fromARGB(255, 248, 224, 224),
+                    const Color.fromARGB(255, 255, 236, 236),
+                  ]
+                : [
+                    const Color.fromARGB(255, 247, 232, 236),
+                    const Color.fromRGBO(255, 251, 252, 1),
+                  ],
           ),
         ),
         child: SafeArea(
@@ -58,13 +68,15 @@ class HomeView extends ConsumerWidget {
                           child: Material(
                             shape: const CircleBorder(),
                             child: IconButton(
-                                splashColor:
-                                    const Color.fromARGB(255, 245, 188, 188),
-                                onPressed: () {},
-                                icon: const Image(
-                                    height: 22,
-                                    image: AssetImage(
-                                        "assets/images/menu-icon.png"))),
+                              splashColor:
+                                  const Color.fromARGB(255, 245, 188, 188),
+                              onPressed: () {},
+                              icon: const Image(
+                                height: 22,
+                                image:
+                                    AssetImage("assets/images/menu-icon.png"),
+                              ),
+                            ),
                           ),
                         ),
                         GestureDetector(
@@ -94,19 +106,64 @@ class HomeView extends ConsumerWidget {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Image(
-                                          image: AssetImage(
-                                              "assets/images/profile.png"),
-                                        ),
+                                        ref.watch(imageProvider) != null
+                                            ? SizedBox(
+                                                height: 150,
+                                                width: 150,
+                                                child: ClipRRect(
+                                                  clipBehavior: Clip.hardEdge,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          100),
+                                                  child: Image(
+                                                    fit: BoxFit.fill,
+                                                    image: FileImage(File(ref
+                                                        .watch(imageProvider)!
+                                                        .path)),
+                                                  ),
+                                                ),
+                                              )
+                                            : const SizedBox(
+                                                height: 150,
+                                                width: 150,
+                                                child: Image(
+                                                  image: AssetImage(
+                                                      "assets/images/profile.png"),
+                                                ),
+                                              ),
                                         const SizedBox(
                                           height: 10,
                                         ),
-                                        Text(
-                                          "Sophia Tween",
-                                          style: GoogleFonts.poppins(
-                                            color: Colors.black,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w500,
+                                        InkWell(
+                                          onTap: () async {
+                                            final ImagePicker _picker =
+                                                ImagePicker();
+                                            final image =
+                                                await _picker.pickImage(
+                                                    source:
+                                                        ImageSource.gallery);
+                                            if (image != null) {
+                                              if (image.path.endsWith("png") ||
+                                                  image.path.endsWith("jpg") ||
+                                                  image.path.endsWith("jpeg")) {
+                                                ref
+                                                    .read(
+                                                        imageProvider.notifier)
+                                                    .state = image;
+
+                                                Navigator.pop(context);
+                                              } else {
+                                                print("Denied");
+                                              }
+                                            }
+                                          },
+                                          child: Text(
+                                            "Sophia Tween",
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.black,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -127,7 +184,9 @@ class HomeView extends ConsumerWidget {
                       height: 30,
                     ),
                     Text(
-                      "One place for all needs.",
+                      ref.watch(flavorConfigProvider).appTitle == "Trendy"
+                          ? "All trendy brands at one place"
+                          : "All type of yum food for foodie's.",
                       style: GoogleFonts.poppins(
                         fontSize: 28,
                         fontWeight: FontWeight.w400,
@@ -183,20 +242,37 @@ class HomeView extends ConsumerWidget {
               ),
               ref.watch(fetchProductsProvider).when(
                   loading: () => const Expanded(
-                        flex: 11,
+                        flex: 7,
                         child: Center(
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                           ),
                         ),
                       ),
-                  error: (error, stackTrace) => Center(
-                        child: Text(
-                          error.toString(),
-                          style: GoogleFonts.poppins(
-                            color: Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                  error: (error, stackTrace) => Expanded(
+                        flex: 7,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                error.toString(),
+                                style: GoogleFonts.poppins(
+                                  color: Colors.red,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  ref.watch(apiFunctionsProvider).fetchProducts(
+                                      ref
+                                          .watch(flavorConfigProvider)
+                                          .apiEndPoint[Endpoint.item]);
+                                },
+                                child: const Text("Reload"),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -222,7 +298,7 @@ class HomeView extends ConsumerWidget {
                         .toList();
                     return filteredList.isEmpty
                         ? Expanded(
-                            flex: 11,
+                            flex: 7,
                             child: Center(
                               child: Text(
                                 "No Products Found",
@@ -234,7 +310,7 @@ class HomeView extends ConsumerWidget {
                               ),
                             ))
                         : Expanded(
-                            flex: 11,
+                            flex: 7,
                             child: Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 25),

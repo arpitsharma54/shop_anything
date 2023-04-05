@@ -1,0 +1,41 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Foodie",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_food.dart",
+      "args": ["--flavor", "foodie"]
+    },
+    {
+      "name": "Trendy",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_trendy.dart",
+      "args": ["--flavor", "trendy"]
+    },
+    {
+      "name": "shop_anything",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "shop_anything (profile mode)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "shop_anything (release mode)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_trendy.dart",
+      "args": ["--flavor", "trendy"],
+      "flutterMode": "release"
+    }
+  ]
+}

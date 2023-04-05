@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shop_everything/main.dart';
+import 'package:shop_everything/main_common.dart';
 import 'package:shop_everything/screens/fav-view/fav-view-model.dart';
 import 'package:shop_everything/screens/fav-view/fav-view.dart';
 import 'package:shop_everything/screens/home-view/home-view-model.dart';

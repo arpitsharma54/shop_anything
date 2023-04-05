@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shop_everything/model/product.model.dart';
@@ -10,13 +11,25 @@ final apiFunctionsProvider = ChangeNotifierProvider<ApiFunctions>((ref) {
 });
 
 class ApiFunctions with ChangeNotifier {
-  Future<List<ProductModel>> fetchProducts() async {
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 3),
+      receiveTimeout: const Duration(seconds: 3),
+    ),
+  );
+
+  ApiFunctions() {
+    _dio.options.baseUrl =
+        "https://shop-everything-6ede4-default-rtdb.asia-southeast1.firebasedatabase.app/";
+  }
+
+  Future<List<ProductModel>> fetchProducts(String folderName) async {
+    print(folderName);
     try {
-      final url = Uri.parse(
-          "https://shop-everything-6ede4-default-rtdb.asia-southeast1.firebasedatabase.app/products.json");
-      final response = await http.get(url);
-      print("<======== ${jsonDecode(response.body)} =======>");
-      final data = Map<String, dynamic>.from(jsonDecode(response.body) ?? {});
+      final Response response = await _dio.get("$folderName.json");
+
+      print("<======== ${response.data} =======>");
+      final data = Map<String, dynamic>.from(response.data ?? {});
       List<ProductModel> products = [];
       List<String> keysList = data.keys.toList();
       for (var i = 0; i < data.length; i++) {
@@ -31,12 +44,13 @@ class ApiFunctions with ChangeNotifier {
   }
 
   Future<void> updateFavProduct(
-      {required bool value, required String productIndex}) async {
-    final url = Uri.parse(
-        "https://shop-everything-6ede4-default-rtdb.asia-southeast1.firebasedatabase.app/products/$productIndex.json");
-    final response = await http.patch(url, body: jsonEncode({'isFav': value}));
-    print(jsonDecode(response.body));
-    await fetchProducts();
+      {required bool value,
+      required String productIndex,
+      required String folderName}) async {
+    final response = await _dio.patch("$folderName/$productIndex.json",
+        data: jsonEncode({'isFav': value}));
+    print(response.data);
+    await fetchProducts(folderName);
     notifyListeners();
   }
 }

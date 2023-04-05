@@ -2,8 +2,7 @@
     package="com.example.shop_everything">
     <uses-permission android:name="android.permission.INTERNET" /> 
    <application
-        android:label="shopping_app"
-        android:name="${applicationName}"
+        android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

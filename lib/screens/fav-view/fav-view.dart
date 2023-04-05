@@ -1,10 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shop_everything/widgets/bottom-navigation-bar.dart';
 
-import '../../model/product.model.dart';
-import '../../widgets/custom-grid-tile.dart';
 import './fav-view-model.dart';
 import '../../widgets/search-text-feild.dart';
 
@@ -16,6 +14,8 @@ class FavView extends ConsumerStatefulWidget {
 }
 
 class _FavViewState extends ConsumerState<FavView> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool isLoading = false;
   @override
   void dispose() {
     ref.invalidate(favSearchTextProvider);
@@ -88,73 +88,158 @@ class _FavViewState extends ConsumerState<FavView> {
               const SizedBox(
                 height: 10,
               ),
-              ref.watch(favProductsListProvider).when(
-                  loading: () => const Expanded(
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      ),
-                  error: (error, stackTrace) => Center(
-                        child: Text(
-                          error.toString(),
-                          style: GoogleFonts.poppins(
-                            color: Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                  data: (data) {
-                    List<ProductModel> filteredList = data;
+              // ref.watch(favProductsListProvider).when(
+              //     loading: () => const Expanded(
+              //           child: Center(
+              //             child: CircularProgressIndicator(
+              //               strokeWidth: 2,
+              //             ),
+              //           ),
+              //         ),
+              //     error: (error, stackTrace) => Center(
+              //           child: Text(
+              //             error.toString(),
+              //             style: GoogleFonts.poppins(
+              //               color: Colors.red,
+              //               fontSize: 16,
+              //               fontWeight: FontWeight.w500,
+              //             ),
+              //           ),
+              //         ),
+              //     data: (data) {
+              //       List<ProductModel> filteredList = data;
 
-                    filteredList = filteredList
-                        .where((element) => element.name!
-                            .toLowerCase()
-                            .contains(ref.watch(favSearchTextProvider)))
-                        .toList();
-                    return filteredList.isEmpty
-                        ? Expanded(
-                            child: Center(
-                            child: Text(
-                              "No Products Found",
-                              style: GoogleFonts.poppins(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ))
-                        : Expanded(
-                            flex: 11,
-                            child: GridView.builder(
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: filteredList.length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisSpacing: 20,
-                                mainAxisSpacing: 4,
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.44,
-                              ),
-                              itemBuilder: (context, index) {
-                                return CustomGridTile(
-                                  name: filteredList[index].name,
-                                  isFav: filteredList[index].isFav!,
-                                  image: filteredList[index].image,
-                                  price: filteredList[index].price,
-                                  productIndex:
-                                      filteredList[index].productIndex!,
-                                );
-                              },
-                            ),
-                          );
-                  }),
+              //       filteredList = filteredList
+              //           .where((element) => element.name!
+              //               .toLowerCase()
+              //               .contains(ref.watch(favSearchTextProvider)))
+              //           .toList();
+              //       return filteredList.isEmpty
+              //           ? Expanded(
+              //               child: Center(
+              //               child: Text(
+              //                 "No Products Found",
+              //                 style: GoogleFonts.poppins(
+              //                   color: Colors.black,
+              //                   fontSize: 16,
+              //                   fontWeight: FontWeight.w500,
+              //                 ),
+              //               ),
+              //             ))
+              //           : Expanded(
+              //               flex: 11,
+              //               child: GridView.builder(
+              //                 physics: const BouncingScrollPhysics(),
+              //                 itemCount: filteredList.length,
+              //                 gridDelegate:
+              //                     const SliverGridDelegateWithFixedCrossAxisCount(
+              //                   crossAxisSpacing: 20,
+              //                   mainAxisSpacing: 4,
+              //                   crossAxisCount: 2,
+              //                   childAspectRatio: 0.44,
+              //                 ),
+              //                 itemBuilder: (context, index) {
+              //                   return CustomGridTile(
+              //                     name: filteredList[index].name,
+              //                     isFav: filteredList[index].isFav!,
+              //                     image: filteredList[index].image,
+              //                     price: filteredList[index].price,
+              //                     productIndex:
+              //                         filteredList[index].productIndex!,
+              //                   );
+              //                 },
+              //               ),
+              //             );
+              //     }),
+              !isLoading
+                  ? SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          await phoneSignIn(phoneNumber: "+917898580811");
+                        },
+                        child: Text("Log In"),
+                        style: ButtonStyle(
+                            side: MaterialStateProperty.all<BorderSide>(
+                                BorderSide.none)),
+                      ),
+                    )
+                  : CircularProgressIndicator(),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> phoneSignIn({required String phoneNumber}) async {
+    setState(() {
+      isLoading = false;
+    });
+
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: _onVerificationCompleted,
+      verificationFailed: _onVerificationFailed,
+      codeSent: _onCodeSent,
+      codeAutoRetrievalTimeout: _onCodeTimeout,
+    );
+  }
+
+  _onVerificationCompleted(PhoneAuthCredential authCredential) async {
+    print("verification completed ${authCredential.smsCode}");
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (authCredential.smsCode != null) {
+      try {
+        UserCredential credential =
+            await user!.linkWithCredential(authCredential);
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'provider-already-linked') {
+          await _auth.signInWithCredential(authCredential);
+        }
+      }
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  _onVerificationFailed(FirebaseAuthException exception) {
+    if (exception.code == 'invalid-phone-number') {
+      showMessage("The phone number entered is invalid!");
+    }
+  }
+
+  _onCodeSent(String verificationId, int? forceResendingToken) {
+    print(forceResendingToken);
+    print("code sent");
+  }
+
+  _onCodeTimeout(String timeout) {
+    return null;
+  }
+
+  void showMessage(String errorMessage) {
+    showDialog(
+        context: context,
+        builder: (BuildContext builderContext) {
+          return AlertDialog(
+            title: Text("Error"),
+            content: Text(errorMessage),
+            actions: [
+              TextButton(
+                child: Text("Ok"),
+                onPressed: () async {
+                  Navigator.of(builderContext).pop();
+                },
+              )
+            ],
+          );
+        }).then((value) {
+      setState(() {
+        isLoading = false;
+      });
+    });
   }
 }
